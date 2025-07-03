@@ -65,7 +65,7 @@ if __name__ == '__main__':
     parser.add_argument('workers_count') 
     args = parser.parse_args()
 
-    max_workers = args['workers_count']
+    max_workers = int(args.workers_count)
 
     START = datetime.now()
 
