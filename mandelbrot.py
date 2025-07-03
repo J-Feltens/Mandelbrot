@@ -59,6 +59,10 @@ def calc_block(M: np.ndarray, N: int, progress: bool=False) -> np.ndarray:
     return R
 
 
+def calc_block_wrapper(M: np.ndarray, x: int, y: int, N: int):
+    return [x, y, calc_block(M, N)]
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
                     prog='Mandelbrot')
@@ -74,20 +78,22 @@ if __name__ == '__main__':
     X_LIM = (-0.765987207792208, -0.7659472077922079)
     Y_LIM = (-0.10093071428571464, -0.10089071428571462)
 
-    X_RES = 1920
-    Y_RES = 1080
+    X_RES = 1000
+    Y_RES = 1000
+
+    BLOCK_SHAPE = (Y_RES / 10, X_RES / 10)
 
     X = np.linspace(*X_LIM, X_RES, dtype=np.float64)
     Y = np.linspace(*Y_LIM, Y_RES, dtype=np.float64)
 
     M = np.zeros((len(Y), len(X)), dtype=np.complex128)
+    R = np.zeros((len(Y), len(X)), dtype=int)
 
     for m, y in enumerate(Y):
         for n, x in enumerate(X):
             M[m, n] = x + y*1j
 
-    block_shape = (108, 192)
-    block_height, block_width = block_shape
+    block_height, block_width = BLOCK_SHAPE
     blocks = []
 
     with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
@@ -95,12 +101,23 @@ if __name__ == '__main__':
         for y in range(10):
             for x in range(10):
                 B = M[int(y*block_height) : int((y+1)*block_height), int(x*block_width) : int((x+1)*block_width)]
-                print(B.shape)
-                futures.append(executor.submit(calc_block, B, N))
+                print(f'Block shape: {B.shape}')
+                futures.append(executor.submit(calc_block_wrapper, B, x, y, N))
 
+    blocks = []
     for future in concurrent.futures.as_completed(futures):
-        result = future.result()
-        # print(f"Result: {result}")
+        blocks.append(future.result())
+
+
+    for y in range(10):
+        for x in range(10):
+            n, m, block = blocks[x + 10*y]
+            R[int(m*block_height) : int((m+1)*block_height), int(n*block_width) : int((n+1)*block_width)] = block
+
 
 
     print(f'\nDuration: {datetime.now() - START}')
+
+    plt.imshow(R, cmap='cividis')
+
+    plt.show()
