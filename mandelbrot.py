@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import concurrent.futures
+import argparse
 from tqdm import tqdm
 from datetime import datetime
 
@@ -59,6 +60,13 @@ def calc_block(M: np.ndarray, N: int, progress: bool=False) -> np.ndarray:
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+                    prog='Mandelbrot')
+    parser.add_argument('workers_count') 
+    args = parser.parse_args()
+
+    max_workers = args['workers_count']
+
     START = datetime.now()
 
     N = 255
@@ -82,7 +90,7 @@ if __name__ == '__main__':
     block_height, block_width = block_shape
     blocks = []
 
-    with concurrent.futures.ProcessPoolExecutor(max_workers=10) as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
         futures = []
         for y in range(10):
             for x in range(10):
