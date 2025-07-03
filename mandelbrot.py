@@ -71,53 +71,64 @@ if __name__ == '__main__':
 
     max_workers = int(args.workers_count)
 
-    START = datetime.now()
+    CENTER = (-0.10091071428571463, -0.765967207792208)
+    padding = 2
+    
+    for i in tqdm(range(10)):
 
-    N = 255
+        padding *= .9
+    
+        START = datetime.now()
 
-    X_LIM = (-0.765987207792208, -0.7659472077922079)
-    Y_LIM = (-0.10093071428571464, -0.10089071428571462)
+        N = 255
 
-    X_RES = 1000
-    Y_RES = 1000
+        X_LIM = (-0.765987207792208, -0.7659472077922079)
+        Y_LIM = (-0.10093071428571464, -0.10089071428571462)
 
-    BLOCK_SHAPE = (Y_RES / 10, X_RES / 10)
+        X_LIM = (CENTER[1] - padding, CENTER[1] + padding)
+        Y_LIM = (CENTER[0] - padding, CENTER[0] + padding)
 
-    X = np.linspace(*X_LIM, X_RES, dtype=np.float64)
-    Y = np.linspace(*Y_LIM, Y_RES, dtype=np.float64)
+        X_RES = 500
+        Y_RES = 500
 
-    M = np.zeros((len(Y), len(X)), dtype=np.complex128)
-    R = np.zeros((len(Y), len(X)), dtype=int)
+        BLOCK_SHAPE = (Y_RES / 10, X_RES / 10)
 
-    for m, y in enumerate(Y):
-        for n, x in enumerate(X):
-            M[m, n] = x + y*1j
+        X = np.linspace(*X_LIM, X_RES, dtype=np.float64)
+        Y = np.linspace(*Y_LIM, Y_RES, dtype=np.float64)
 
-    block_height, block_width = BLOCK_SHAPE
-    blocks = []
+        M = np.zeros((len(Y), len(X)), dtype=np.complex128)
+        R = np.zeros((len(Y), len(X)), dtype=int)
 
-    with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
-        futures = []
+        for m, y in enumerate(Y):
+            for n, x in enumerate(X):
+                M[m, n] = x + y*1j
+
+        block_height, block_width = BLOCK_SHAPE
+        blocks = []
+
+        with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
+            futures = []
+            for y in range(10):
+                for x in range(10):
+                    B = M[int(y*block_height) : int((y+1)*block_height), int(x*block_width) : int((x+1)*block_width)]
+                    # print(f'Block shape: {B.shape}')
+                    futures.append(executor.submit(calc_block_wrapper, B, x, y, N))
+
+        blocks = []
+        for future in concurrent.futures.as_completed(futures):
+            blocks.append(future.result())
+
+
         for y in range(10):
             for x in range(10):
-                B = M[int(y*block_height) : int((y+1)*block_height), int(x*block_width) : int((x+1)*block_width)]
-                print(f'Block shape: {B.shape}')
-                futures.append(executor.submit(calc_block_wrapper, B, x, y, N))
-
-    blocks = []
-    for future in concurrent.futures.as_completed(futures):
-        blocks.append(future.result())
-
-
-    for y in range(10):
-        for x in range(10):
-            n, m, block = blocks[x + 10*y]
-            R[int(m*block_height) : int((m+1)*block_height), int(n*block_width) : int((n+1)*block_width)] = block
+                n, m, block = blocks[x + 10*y]
+                R[int(m*block_height) : int((m+1)*block_height), int(n*block_width) : int((n+1)*block_width)] = block
 
 
 
-    print(f'\nDuration: {datetime.now() - START}')
+        print(f'\nDuration: {datetime.now() - START}')
 
-    plt.imshow(R, cmap='cividis')
+        plt.imshow(R, cmap='cividis')
+        plt.imsave(f'renders/render1/{i}.png', R, cmap='cividis')
 
-    plt.show()
+        # plt.show()
