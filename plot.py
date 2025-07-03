@@ -33,6 +33,6 @@ for m in range(len(Y)):
     for n in range(len(X)):
         M[m, n] = calc_color(X[n] + Y[m]*1j, N)
 
-plt.imshow(M, extent=[*X_LIM, *np.flip(Y_LIM)], cmap='cividis')
+# plt.imshow(M, extent=[*X_LIM, *np.flip(Y_LIM)], cmap='cividis')
 
-plt.show()
+# plt.show()
